@@ -380,7 +380,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎉 年会抽奖系统 🎉</h1>
+        <h1>🎉 AUMOVIO UX R&D NKG 🎉</h1>
 
         <div class="tab-buttons">
             <button class="tab-btn active" onclick="switchTab('signin')">签到</button>
@@ -390,8 +390,20 @@
 
         <!-- 签到页面 -->
         <div id="signin" class="tab-content active">
-            <div class="signin-form">
-                <div class="mobile-tip" id="mobileTip" style="display: none;">
+            <!-- 大屏幕显示二维码区域 -->
+            <div class="qrcode-section" id="desktopQRSection">
+                <h3>📱 扫码签到</h3>
+                <p>请使用手机扫描下方二维码进行签到</p>
+                <div id="qrcode-signin"></div>
+                <div class="qrcode-url">
+                    <strong>签到链接：</strong><br>
+                    <span id="signinUrlDisplay"></span>
+                </div>
+            </div>
+
+            <!-- 手机端签到表单 -->
+            <div class="signin-form" id="mobileSigninForm" style="display: none;">
+                <div class="mobile-tip">
                     ✨ 欢迎参加年会！请填写信息完成签到
                 </div>
                 <h2 style="text-align: center; margin-bottom: 30px;">员工签到</h2>
@@ -517,13 +529,15 @@
             updateParticipantsList();
             updateWinnersList();
             generateQRCode();
+            generateSigninQRCode();
             
-            // 检查URL参数，如果是签到模式则直接显示签到页面
+            // 检查URL参数，如果是签到模式则直接显示签到表单
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('mode') === 'signin') {
-                // 隐藏标签按钮，只显示签到页面
+                // 隐藏标签按钮和二维码区域，只显示签到表单
                 document.querySelector('.tab-buttons').style.display = 'none';
-                document.getElementById('mobileTip').style.display = 'block';
+                document.getElementById('desktopQRSection').style.display = 'none';
+                document.getElementById('mobileSigninForm').style.display = 'block';
                 switchTab('signin');
             }
         };
@@ -580,6 +594,15 @@
             document.getElementById('phone').value = '';
             
             updateStats();
+            
+            // 手机端签到成功后，3秒后自动断开Firebase连接（优化性能）
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('mode') === 'signin' && useFirebase) {
+                setTimeout(() => {
+                    // 提示用户可以关闭页面
+                    showMessage(messageDiv, '签到成功！可以关闭此页面了 😊', 'success');
+                }, 1500);
+            }
         }
 
         // 开始抽奖
@@ -905,7 +928,38 @@
         // 刷新二维码
         function refreshQRCode() {
             generateQRCode();
+            generateSigninQRCode();
             alert('二维码已刷新！');
+        }
+
+        // 生成签到页面的二维码
+        function generateSigninQRCode() {
+            const qrcodeDiv = document.getElementById('qrcode-signin');
+            const urlSpan = document.getElementById('signinUrlDisplay');
+            
+            if (!qrcodeDiv) return;
+            
+            // 清空之前的二维码
+            qrcodeDiv.innerHTML = '';
+            
+            // 生成签到URL
+            const baseUrl = window.location.href.split('?')[0];
+            const signinUrl = baseUrl + '?mode=signin';
+            
+            // 显示URL
+            if (urlSpan) {
+                urlSpan.textContent = signinUrl;
+            }
+            
+            // 生成二维码
+            new QRCode(qrcodeDiv, {
+                text: signinUrl,
+                width: 256,
+                height: 256,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
         }
     </script>
 </body>
