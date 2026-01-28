@@ -1,0 +1,912 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>年会抽奖系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            justify-content: center;
+        }
+
+        .tab-btn {
+            padding: 12px 30px;
+            border: none;
+            background: #f0f0f0;
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* 签到页面样式 */
+        .signin-form {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        input[type="text"], input[type="tel"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-success {
+            background: #51cf66;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 16px;
+        }
+
+        .success {
+            background: #d3f9d8;
+            color: #2b8a3e;
+        }
+
+        .error {
+            background: #ffe3e3;
+            color: #c92a2a;
+        }
+
+        /* 抽奖页面样式 */
+        .lottery-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .lottery-controls input {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            width: 150px;
+        }
+
+        .draw-btn {
+            padding: 15px 40px;
+            font-size: 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        .draw-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .draw-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: scale(1);
+        }
+
+        .winner-display {
+            text-align: center;
+            padding: 40px;
+            background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+            border-radius: 15px;
+            margin: 30px 0;
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .winner-display h2 {
+            color: white;
+            font-size: 3em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .winner-display .winner-name {
+            font-size: 2.5em;
+            color: #ffd700;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        /* 参与者列表 */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .number {
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+
+        .winners-list {
+            margin-top: 30px;
+        }
+
+        .prize-section {
+            margin-bottom: 30px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .prize-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .winner-item {
+            display: inline-block;
+            background: #f8f9fa;
+            padding: 8px 15px;
+            margin: 5px;
+            border-radius: 20px;
+            border: 2px solid #667eea;
+        }
+
+        .participants-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .participant-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .participant-item:last-child {
+            border-bottom: none;
+        }
+
+        .delete-btn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .delete-btn:hover {
+            background: #ee5a52;
+        }
+
+        /* 二维码区域 */
+        .qrcode-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .qrcode-section h3 {
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        #qrcode {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            display: inline-block;
+            margin: 20px auto;
+        }
+
+        .qrcode-url {
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            word-break: break-all;
+            font-family: monospace;
+        }
+
+        .mobile-tip {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        /* 管理页面 */
+        .admin-actions {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8em;
+            }
+            
+            .tab-buttons {
+                flex-direction: column;
+            }
+            
+            .lottery-controls {
+                flex-direction: column;
+            }
+            
+            .lottery-controls input {
+                width: 100%;
+            }
+            
+            .winner-display h2 {
+                font-size: 2em;
+            }
+            
+            .winner-display .winner-name {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎉 年会抽奖系统 🎉</h1>
+
+        <div class="tab-buttons">
+            <button class="tab-btn active" onclick="switchTab('signin')">签到</button>
+            <button class="tab-btn" onclick="switchTab('lottery')">抽奖</button>
+            <button class="tab-btn" onclick="switchTab('manage')">管理</button>
+        </div>
+
+        <!-- 签到页面 -->
+        <div id="signin" class="tab-content active">
+            <div class="signin-form">
+                <div class="mobile-tip" id="mobileTip" style="display: none;">
+                    ✨ 欢迎参加年会！请填写信息完成签到
+                </div>
+                <h2 style="text-align: center; margin-bottom: 30px;">员工签到</h2>
+                <form onsubmit="signIn(event)">
+                    <div class="form-group">
+                        <label for="name">姓名</label>
+                        <input type="text" id="name" required placeholder="请输入姓名">
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">手机号</label>
+                        <input type="tel" id="phone" required placeholder="请输入手机号">
+                    </div>
+                    <button type="submit" class="btn btn-primary">签到</button>
+                </form>
+                <div id="signinMessage"></div>
+            </div>
+        </div>
+
+        <!-- 抽奖页面 -->
+        <div id="lottery" class="tab-content">
+            <div class="stats">
+                <div class="stat-card">
+                    <h3>已签到</h3>
+                    <div class="number" id="totalParticipants">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>未中奖</h3>
+                    <div class="number" id="remainingParticipants">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>已中奖</h3>
+                    <div class="number" id="totalWinners">0</div>
+                </div>
+            </div>
+
+            <div class="lottery-controls">
+                <select id="prizeType" style="padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px;">
+                    <option value="一等奖">一等奖</option>
+                    <option value="二等奖" selected>二等奖</option>
+                    <option value="三等奖">三等奖</option>
+                </select>
+                <input type="number" id="drawCount" placeholder="抽取人数" min="1" value="1">
+                <button class="draw-btn" onclick="startDraw()">开始抽奖</button>
+            </div>
+
+            <div class="winner-display" id="winnerDisplay">
+                <h2>准备开始抽奖</h2>
+                <p style="color: white; font-size: 1.2em;">选择奖项和人数，点击开始抽奖</p>
+            </div>
+
+            <div class="winners-list" id="winnersList"></div>
+        </div>
+
+        <!-- 管理页面 -->
+        <div id="manage" class="tab-content">
+            <div class="qrcode-section">
+                <h3>📱 手机扫码签到</h3>
+                <p>员工使用手机扫描下方二维码即可进入签到页面</p>
+                <div id="qrcode"></div>
+                <div class="qrcode-url">
+                    <strong>签到链接：</strong><br>
+                    <span id="signinUrl"></span>
+                </div>
+                <button class="btn btn-primary" onclick="refreshQRCode()" style="margin-top: 15px;">刷新二维码</button>
+            </div>
+
+            <div class="admin-actions">
+                <button class="btn btn-danger" onclick="clearAllData()">清空所有数据</button>
+                <button class="btn btn-success" onclick="exportData()">导出数据</button>
+                <button class="btn btn-primary" onclick="importData()">导入数据</button>
+            </div>
+
+            <h3 style="margin-bottom: 15px;">签到人员列表 (<span id="participantCount">0</span>人)</h3>
+            <div class="participants-list" id="participantsList"></div>
+
+            <input type="file" id="importFile" style="display: none;" accept=".json" onchange="handleImport(event)">
+        </div>
+    </div>
+
+    <script>
+        // Firebase配置
+        const firebaseConfig = {
+            apiKey: "AIzaSyBd-3QiN--xkg_R4gxtmkqANE4DrcDD2_Q",
+            authDomain: "annual-meeting-lucky-draw.firebaseapp.com",
+            databaseURL: "https://annual-meeting-lucky-draw-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "annual-meeting-lucky-draw",
+            storageBucket: "annual-meeting-lucky-draw.firebasestorage.app",
+            messagingSenderId: "849027018754",
+            appId: "1:849027018754:web:0773b03eab075f17edb71b",
+            measurementId: "G-GBBE1F2HJ1"
+        };
+
+        // 初始化Firebase
+        let database;
+        let useFirebase = false;
+        
+        try {
+            firebase.initializeApp(firebaseConfig);
+            database = firebase.database();
+            useFirebase = true;
+            console.log('Firebase已启用，数据将实时同步');
+        } catch (error) {
+            console.log('Firebase初始化失败，使用本地存储:', error);
+            useFirebase = false;
+        }
+
+        // 数据结构
+        let participants = []; // 所有签到人员
+        let winners = {
+            '一等奖': [],
+            '二等奖': [],
+            '三等奖': []
+        };
+
+        // 初始化
+        window.onload = function() {
+            if (useFirebase) {
+                loadDataFromFirebase();
+            } else {
+                loadData();
+            }
+            updateStats();
+            updateParticipantsList();
+            updateWinnersList();
+            generateQRCode();
+            
+            // 检查URL参数，如果是签到模式则直接显示签到页面
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('mode') === 'signin') {
+                // 隐藏标签按钮，只显示签到页面
+                document.querySelector('.tab-buttons').style.display = 'none';
+                document.getElementById('mobileTip').style.display = 'block';
+                switchTab('signin');
+            }
+        };
+
+        // 切换标签
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+            
+            updateStats();
+            updateParticipantsList();
+            updateWinnersList();
+        }
+
+        // 签到功能
+        function signIn(event) {
+            event.preventDefault();
+            
+            const name = document.getElementById('name').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const messageDiv = document.getElementById('signinMessage');
+
+            // 验证手机号
+            if (!/^1[3-9]\d{9}$/.test(phone)) {
+                showMessage(messageDiv, '请输入正确的手机号', 'error');
+                return;
+            }
+
+            // 检查是否已签到
+            if (participants.some(p => p.phone === phone)) {
+                showMessage(messageDiv, '该手机号已签到，请勿重复签到！', 'error');
+                return;
+            }
+
+            // 添加参与者
+            participants.push({
+                name: name,
+                phone: phone,
+                signTime: new Date().toLocaleString('zh-CN')
+            });
+
+            saveData();
+            showMessage(messageDiv, `${name}，签到成功！`, 'success');
+            
+            // 清空表单
+            document.getElementById('name').value = '';
+            document.getElementById('phone').value = '';
+            
+            updateStats();
+        }
+
+        // 开始抽奖
+        function startDraw() {
+            const prizeType = document.getElementById('prizeType').value;
+            const drawCount = parseInt(document.getElementById('drawCount').value);
+            
+            // 获取未中奖的人员
+            const allWinners = [...winners['一等奖'], ...winners['二等奖'], ...winners['三等奖']];
+            const availableParticipants = participants.filter(p => 
+                !allWinners.some(w => w.phone === p.phone)
+            );
+
+            if (availableParticipants.length === 0) {
+                alert('没有可抽奖的人员！');
+                return;
+            }
+
+            if (drawCount < 1 || drawCount > availableParticipants.length) {
+                alert(`抽取人数无效！当前可抽奖人数：${availableParticipants.length}`);
+                return;
+            }
+
+            // 抽奖动画
+            const winnerDisplay = document.getElementById('winnerDisplay');
+            winnerDisplay.innerHTML = `<h2>${prizeType}抽奖中...</h2>`;
+            
+            let count = 0;
+            const interval = setInterval(() => {
+                const randomPerson = availableParticipants[Math.floor(Math.random() * availableParticipants.length)];
+                winnerDisplay.innerHTML = `
+                    <h2>${prizeType}</h2>
+                    <div class="winner-name">${randomPerson.name}</div>
+                `;
+                count++;
+                
+                if (count > 20) {
+                    clearInterval(interval);
+                    // 真正抽奖
+                    drawWinners(prizeType, drawCount, availableParticipants);
+                }
+            }, 100);
+        }
+
+        // 执行抽奖
+        function drawWinners(prizeType, count, availableParticipants) {
+            const selected = [];
+            const pool = [...availableParticipants];
+            
+            for (let i = 0; i < count; i++) {
+                const randomIndex = Math.floor(Math.random() * pool.length);
+                selected.push(pool[randomIndex]);
+                pool.splice(randomIndex, 1);
+            }
+
+            // 保存中奖者
+            winners[prizeType].push(...selected);
+            saveData();
+
+            // 显示结果
+            const winnerDisplay = document.getElementById('winnerDisplay');
+            if (selected.length === 1) {
+                winnerDisplay.innerHTML = `
+                    <h2>🎊 ${prizeType} 🎊</h2>
+                    <div class="winner-name">${selected[0].name}</div>
+                    <p style="color: white; margin-top: 20px; font-size: 1.2em;">${selected[0].phone}</p>
+                `;
+            } else {
+                const names = selected.map(w => `<div class="winner-name" style="font-size: 2em; margin: 10px;">${w.name}</div>`).join('');
+                winnerDisplay.innerHTML = `
+                    <h2>🎊 ${prizeType} 🎊</h2>
+                    ${names}
+                `;
+            }
+
+            updateStats();
+            updateWinnersList();
+        }
+
+        // 更新统计信息
+        function updateStats() {
+            const allWinners = [...winners['一等奖'], ...winners['二等奖'], ...winners['三等奖']];
+            const remaining = participants.length - allWinners.length;
+
+            document.getElementById('totalParticipants').textContent = participants.length;
+            document.getElementById('remainingParticipants').textContent = remaining;
+            document.getElementById('totalWinners').textContent = allWinners.length;
+        }
+
+        // 更新中奖名单
+        function updateWinnersList() {
+            const winnersListDiv = document.getElementById('winnersList');
+            let html = '<h3 style="margin-bottom: 20px;">中奖名单</h3>';
+
+            ['一等奖', '二等奖', '三等奖'].forEach(prizeType => {
+                if (winners[prizeType].length > 0) {
+                    html += `<div class="prize-section">
+                        <h3>${prizeType} (${winners[prizeType].length}人)</h3>
+                        <div>`;
+                    
+                    winners[prizeType].forEach(winner => {
+                        html += `<span class="winner-item">${winner.name}</span>`;
+                    });
+                    
+                    html += `</div></div>`;
+                }
+            });
+
+            winnersListDiv.innerHTML = html || '<p style="text-align: center; color: #999;">暂无中奖记录</p>';
+        }
+
+        // 更新参与者列表
+        function updateParticipantsList() {
+            const listDiv = document.getElementById('participantsList');
+            document.getElementById('participantCount').textContent = participants.length;
+
+            if (participants.length === 0) {
+                listDiv.innerHTML = '<p style="text-align: center; color: #999;">暂无签到人员</p>';
+                return;
+            }
+
+            let html = '';
+            participants.forEach((participant, index) => {
+                const isWinner = [...winners['一等奖'], ...winners['二等奖'], ...winners['三等奖']]
+                    .some(w => w.phone === participant.phone);
+                const status = isWinner ? ' 🏆' : '';
+                
+                html += `
+                    <div class="participant-item">
+                        <div>
+                            <strong>${participant.name}${status}</strong>
+                            <span style="margin-left: 15px; color: #666;">${participant.phone}</span>
+                            <span style="margin-left: 15px; color: #999; font-size: 0.9em;">${participant.signTime}</span>
+                        </div>
+                        <button class="delete-btn" onclick="deleteParticipant(${index})">删除</button>
+                    </div>
+                `;
+            });
+
+            listDiv.innerHTML = html;
+        }
+
+        // 删除参与者
+        function deleteParticipant(index) {
+            if (confirm('确定要删除该参与者吗？')) {
+                const participant = participants[index];
+                
+                // 同时删除中奖记录
+                ['一等奖', '二等奖', '三等奖'].forEach(prizeType => {
+                    winners[prizeType] = winners[prizeType].filter(w => w.phone !== participant.phone);
+                });
+                
+                participants.splice(index, 1);
+                saveData();
+                updateStats();
+                updateParticipantsList();
+                updateWinnersList();
+            }
+        }
+
+        // 清空所有数据
+        function clearAllData() {
+            if (confirm('确定要清空所有数据吗？此操作不可恢复！')) {
+                participants = [];
+                winners = {
+                    '一等奖': [],
+                    '二等奖': [],
+                    '三等奖': []
+                };
+                saveData();
+                updateStats();
+                updateParticipantsList();
+                updateWinnersList();
+                
+                document.getElementById('winnerDisplay').innerHTML = `
+                    <h2>准备开始抽奖</h2>
+                    <p style="color: white; font-size: 1.2em;">选择奖项和人数，点击开始抽奖</p>
+                `;
+                
+                alert('数据已清空！');
+            }
+        }
+
+        // 导出数据
+        function exportData() {
+            const data = {
+                participants: participants,
+                winners: winners,
+                exportTime: new Date().toLocaleString('zh-CN')
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `年会抽奖数据_${new Date().getTime()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // 导入数据
+        function importData() {
+            document.getElementById('importFile').click();
+        }
+
+        function handleImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.participants && data.winners) {
+                        participants = data.participants;
+                        winners = data.winners;
+                        saveData();
+                        updateStats();
+                        updateParticipantsList();
+                        updateWinnersList();
+                        alert('数据导入成功！');
+                    } else {
+                        alert('数据格式错误！');
+                    }
+                } catch (error) {
+                    alert('导入失败：' + error.message);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        // 保存数据
+        function saveData() {
+            if (useFirebase) {
+                saveDataToFirebase();
+            } else {
+                localStorage.setItem('participants', JSON.stringify(participants));
+                localStorage.setItem('winners', JSON.stringify(winners));
+            }
+        }
+
+        // 保存到Firebase
+        function saveDataToFirebase() {
+            database.ref('lottery').set({
+                participants: participants,
+                winners: winners,
+                lastUpdate: new Date().toISOString()
+            }).catch(error => {
+                console.error('Firebase保存失败:', error);
+                // 降级到本地存储
+                localStorage.setItem('participants', JSON.stringify(participants));
+                localStorage.setItem('winners', JSON.stringify(winners));
+            });
+        }
+
+        // 从Firebase加载数据
+        function loadDataFromFirebase() {
+            database.ref('lottery').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    participants = data.participants || [];
+                    winners = data.winners || {
+                        '一等奖': [],
+                        '二等奖': [],
+                        '三等奖': []
+                    };
+                    updateStats();
+                    updateParticipantsList();
+                    updateWinnersList();
+                }
+            });
+        }
+
+        // 从localStorage加载数据
+        function loadData() {
+            const savedParticipants = localStorage.getItem('participants');
+            const savedWinners = localStorage.getItem('winners');
+            
+            if (savedParticipants) {
+                participants = JSON.parse(savedParticipants);
+            }
+            
+            if (savedWinners) {
+                winners = JSON.parse(savedWinners);
+            }
+        }
+
+        // 显示消息
+        function showMessage(element, text, type) {
+            element.innerHTML = `<div class="message ${type}">${text}</div>`;
+            setTimeout(() => {
+                element.innerHTML = '';
+            }, 3000);
+        }
+
+        // 生成二维码
+        function generateQRCode() {
+            const qrcodeDiv = document.getElementById('qrcode');
+            const urlSpan = document.getElementById('signinUrl');
+            
+            // 清空之前的二维码
+            qrcodeDiv.innerHTML = '';
+            
+            // 生成签到URL
+            const baseUrl = window.location.href.split('?')[0];
+            const signinUrl = baseUrl + '?mode=signin';
+            
+            // 显示URL
+            urlSpan.textContent = signinUrl;
+            
+            // 生成二维码
+            new QRCode(qrcodeDiv, {
+                text: signinUrl,
+                width: 256,
+                height: 256,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        // 刷新二维码
+        function refreshQRCode() {
+            generateQRCode();
+            alert('二维码已刷新！');
+        }
+    </script>
+</body>
+</html>
