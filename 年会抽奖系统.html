@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -472,44 +472,30 @@
     </div>
 
     <script>
-        // Firebase配置 - 请替换为你自己的配置
-        // Import the functions you need from the SDKs you need
-//import { initializeApp } from "firebase/app";
-//import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyBd-3QiN--xkg_R4gxtmkqANE4DrcDD2_Q",
-  authDomain: "annual-meeting-lucky-draw.firebaseapp.com",
-  projectId: "annual-meeting-lucky-draw",
-  storageBucket: "annual-meeting-lucky-draw.firebasestorage.app",
-  messagingSenderId: "849027018754",
-  appId: "1:849027018754:web:0773b03eab075f17edb71b",
-  measurementId: "G-GBBE1F2HJ1"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+        // Firebase配置
+        const firebaseConfig = {
+            apiKey: "AIzaSyBd-3QiN--xkg_R4gxtmkqANE4DrcDD2_Q",
+            authDomain: "annual-meeting-lucky-draw.firebaseapp.com",
+            databaseURL: "https://annual-meeting-lucky-draw-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "annual-meeting-lucky-draw",
+            storageBucket: "annual-meeting-lucky-draw.firebasestorage.app",
+            messagingSenderId: "849027018754",
+            appId: "1:849027018754:web:0773b03eab075f17edb71b",
+            measurementId: "G-GBBE1F2HJ1"
+        };
 
         // 初始化Firebase
         let database;
         let useFirebase = false;
         
         try {
-            if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
-                firebase.initializeApp(firebaseConfig);
-                database = firebase.database();
-                useFirebase = true;
-                console.log('Firebase已启用');
-            } else {
-                console.log('使用本地存储模式');
-            }
+            firebase.initializeApp(firebaseConfig);
+            database = firebase.database();
+            useFirebase = true;
+            console.log('Firebase已启用，数据将实时同步');
         } catch (error) {
             console.log('Firebase初始化失败，使用本地存储:', error);
+            useFirebase = false;
         }
 
         // 数据结构
