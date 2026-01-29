@@ -566,7 +566,18 @@
             });
             
             document.getElementById(tabName).classList.add('active');
-            event.target.classList.add('active');
+            
+            // 找到对应的按钮并激活
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(btn => {
+                if (btn.textContent.includes('签到') && tabName === 'signin') {
+                    btn.classList.add('active');
+                } else if (btn.textContent.includes('抽奖') && tabName === 'lottery') {
+                    btn.classList.add('active');
+                } else if (btn.textContent.includes('管理') && tabName === 'manage') {
+                    btn.classList.add('active');
+                }
+            });
             
             updateStats();
             updateParticipantsList();
@@ -774,9 +785,19 @@
             const allWinners = [...winners['一等奖'], ...winners['二等奖'], ...winners['三等奖']];
             const remaining = participants.length - allWinners.length;
 
-            document.getElementById('totalParticipants').textContent = participants.length;
-            document.getElementById('remainingParticipants').textContent = remaining;
-            document.getElementById('totalWinners').textContent = allWinners.length;
+            console.log('更新统计信息:', {
+                总签到: participants.length,
+                已中奖: allWinners.length,
+                可抽奖: remaining
+            });
+
+            const totalElem = document.getElementById('totalParticipants');
+            const remainingElem = document.getElementById('remainingParticipants');
+            const winnersElem = document.getElementById('totalWinners');
+            
+            if (totalElem) totalElem.textContent = participants.length;
+            if (remainingElem) remainingElem.textContent = remaining;
+            if (winnersElem) winnersElem.textContent = allWinners.length;
         }
 
         // 更新中奖名单
@@ -804,7 +825,18 @@
         // 更新参与者列表
         function updateParticipantsList() {
             const listDiv = document.getElementById('participantsList');
-            document.getElementById('participantCount').textContent = participants.length;
+            const countElem = document.getElementById('participantCount');
+            
+            console.log('更新参与者列表，当前人数:', participants.length);
+            
+            if (countElem) {
+                countElem.textContent = participants.length;
+            }
+
+            if (!listDiv) {
+                console.error('找不到participantsList元素');
+                return;
+            }
 
             if (participants.length === 0) {
                 listDiv.innerHTML = '<p style="text-align: center; color: #999;">暂无签到人员</p>';
