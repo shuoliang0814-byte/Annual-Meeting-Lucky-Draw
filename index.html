@@ -531,17 +531,29 @@
 
         // 初始化
         window.onload = function() {
+            console.log('===== 页面初始化开始 =====');
+            
             // 先从localStorage加载本地数据（即时显示）
             loadData();
             
-            // 如果使用Firebase，再同步Firebase数据
-            if (useFirebase) {
-                loadDataFromFirebase();
-            }
-            
+            // 立即更新界面显示
             updateStats();
             updateParticipantsList();
             updateWinnersList();
+            
+            console.log('初始化后数据状态:', {
+                签到人数: participants.length,
+                一等奖: winners['一等奖'].length,
+                二等奖: winners['二等奖'].length,
+                三等奖: winners['三等奖'].length
+            });
+            
+            // 如果使用Firebase，启动实时同步（不会立即覆盖数据）
+            if (useFirebase) {
+                console.log('启动Firebase实时同步...');
+                loadDataFromFirebase();
+            }
+            
             generateQRCode();
             generateSigninQRCode();
             
@@ -554,6 +566,8 @@
                 document.getElementById('mobileSigninForm').style.display = 'block';
                 switchTab('signin');
             }
+            
+            console.log('===== 页面初始化完成 =====');
         };
 
         // 切换标签
@@ -993,16 +1007,37 @@
         function loadDataFromFirebase() {
             database.ref('lottery').on('value', (snapshot) => {
                 const data = snapshot.val();
-                if (data) {
-                    participants = data.participants || [];
-                    winners = data.winners || {
-                        '一等奖': [],
-                        '二等奖': [],
-                        '三等奖': []
-                    };
+                console.log('Firebase数据同步:', data ? '有数据' : '无数据');
+                
+                if (data && (data.participants || data.winners)) {
+                    // 只有Firebase有实际数据时才覆盖本地数据
+                    if (data.participants && data.participants.length > 0) {
+                        participants = data.participants;
+                        console.log('从Firebase加载了', participants.length, '个签到人员');
+                    }
+                    
+                    if (data.winners) {
+                        winners = data.winners;
+                        console.log('从Firebase加载了中奖数据');
+                    }
+                    
+                    // 同时更新到localStorage
+                    localStorage.setItem('participants', JSON.stringify(participants));
+                    localStorage.setItem('winners', JSON.stringify(winners));
+                    
                     updateStats();
                     updateParticipantsList();
                     updateWinnersList();
+                } else {
+                    console.log('Firebase无数据，保持使用localStorage数据');
+                    // Firebase没有数据，将本地数据同步到Firebase
+                    if (participants.length > 0 || 
+                        winners['一等奖'].length > 0 || 
+                        winners['二等奖'].length > 0 || 
+                        winners['三等奖'].length > 0) {
+                        console.log('将本地数据同步到Firebase');
+                        saveDataToFirebase();
+                    }
                 }
             });
         }
