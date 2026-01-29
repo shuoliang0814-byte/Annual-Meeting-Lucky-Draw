@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>� 2026新春年会 · 马年大吉 🎊</title>
+    <title>🎊2026新春年会 · 马跃金途 🎊</title>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -355,7 +355,9 @@
 
         @media (max-width: 768px) {
             h1 {
-                font-size: 1.8em;
+                font-size: 1.5em;
+                white-space: normal;
+                line-height: 1.3;
             }
             
             .tab-buttons {
@@ -712,6 +714,12 @@
             
             if (validParticipants.length < count) {
                 alert(`可抽奖人数不足！当前可抽奖：${validParticipants.length}人`);
+                // 确保按钮状态恢复
+                document.getElementById('startDrawBtn').style.display = 'inline-block';
+                document.getElementById('stopDrawBtn').style.display = 'none';
+                document.getElementById('prizeType').disabled = false;
+                document.getElementById('drawCount').disabled = false;
+                isDrawing = false;
                 return;
             }
             
@@ -749,6 +757,13 @@
             updateStats();
             updateWinnersList();
             updateParticipantsList();
+            
+            console.log('抽奖完成，当前中奖人数统计:', {
+                一等奖: winners['一等奖'].length,
+                二等奖: winners['二等奖'].length,
+                三等奖: winners['三等奖'].length,
+                总计: allCurrentWinners.length + selected.length
+            });
         }
 
         // 更新统计信息
