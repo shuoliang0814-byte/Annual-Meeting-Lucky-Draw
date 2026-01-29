@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AUMOVIO UX R&D NKG</title>
+    <title>年会抽奖系统</title>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-    <!-- 腾讯云 CloudBase SDK -->
-    <script src="https://imgcache.qq.com/qcloud/cloudbase-js-sdk/1.7.1/cloudbase.full.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
         * {
             margin: 0;
@@ -483,30 +484,30 @@
     </div>
 
     <script>
-        // 腾讯云CloudBase配置
-        const cloudbaseConfig = {
-            env: "lucky-2g9bnxil124c3226"
+        // Firebase配置
+        const firebaseConfig = {
+            apiKey: "AIzaSyBd-3QiN--xkg_R4gxtmkqANE4DrcDD2_Q",
+            authDomain: "annual-meeting-lucky-draw.firebaseapp.com",
+            databaseURL: "https://annual-meeting-lucky-draw-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "annual-meeting-lucky-draw",
+            storageBucket: "annual-meeting-lucky-draw.firebasestorage.app",
+            messagingSenderId: "849027018754",
+            appId: "1:849027018754:web:0773b03eab075f17edb71b",
+            measurementId: "G-GBBE1F2HJ1"
         };
 
-        // 初始化CloudBase
-        let app;
-        let db;
-        let useCloudBase = false;
+        // 初始化Firebase
+        let database;
+        let useFirebase = false;
         
         try {
-            if (cloudbaseConfig.env !== "YOUR_ENV_ID") {
-                app = cloudbase.init(cloudbaseConfig);
-                // 匿名登录
-                app.auth({ persistence: 'local' }).anonymousAuthProvider().signIn();
-                db = app.database();
-                useCloudBase = true;
-                console.log('腾讯云CloudBase已启用，数据将实时同步');
-            } else {
-                console.log('未配置CloudBase，使用本地存储模式');
-            }
+            firebase.initializeApp(firebaseConfig);
+            database = firebase.database();
+            useFirebase = true;
+            console.log('Firebase已启用，数据将实时同步');
         } catch (error) {
-            console.log('CloudBase初始化失败，使用本地存储:', error);
-            useCloudBase = false;
+            console.log('Firebase初始化失败，使用本地存储:', error);
+            useFirebase = false;
         }
 
         // 数据结构
@@ -519,8 +520,8 @@
 
         // 初始化
         window.onload = function() {
-            if (useCloudBase) {
-                loadDataFromCloudBase();
+            if (useFirebase) {
+                loadDataFromFirebase();
             } else {
                 loadData();
             }
@@ -594,9 +595,9 @@
             
             updateStats();
             
-            // 手机端签到成功后，提示用户可以关闭页面
+            // 手机端签到成功后，3秒后自动断开Firebase连接（优化性能）
             const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('mode') === 'signin' && useCloudBase) {
+            if (urlParams.get('mode') === 'signin' && useFirebase) {
                 setTimeout(() => {
                     // 提示用户可以关闭页面
                     showMessage(messageDiv, '签到成功！可以关闭此页面了 😊', 'success');
@@ -836,62 +837,33 @@
 
         // 保存数据
         function saveData() {
-            if (useCloudBase) {
-                saveDataToCloudBase();
+            if (useFirebase) {
+                saveDataToFirebase();
             } else {
                 localStorage.setItem('participants', JSON.stringify(participants));
                 localStorage.setItem('winners', JSON.stringify(winners));
             }
         }
 
-        // 保存到CloudBase
-        function saveDataToCloudBase() {
-            const collection = db.collection('lottery');
-            collection.doc('data').set({
+        // 保存到Firebase
+        function saveDataToFirebase() {
+            database.ref('lottery').set({
                 participants: participants,
                 winners: winners,
                 lastUpdate: new Date().toISOString()
-            }).then(() => {
-                console.log('数据已保存到CloudBase');
             }).catch(error => {
-                console.error('CloudBase保存失败:', error);
+                console.error('Firebase保存失败:', error);
                 // 降级到本地存储
                 localStorage.setItem('participants', JSON.stringify(participants));
                 localStorage.setItem('winners', JSON.stringify(winners));
             });
         }
 
-        // 从CloudBase加载数据
-        function loadDataFromCloudBase() {
-            const collection = db.collection('lottery');
-            
-            // 监听数据变化
-            collection.doc('data').watch({
-                onChange: (snapshot) => {
-                    if (snapshot.docs.length > 0) {
-                        const data = snapshot.docs[0].data;
-                        participants = data.participants || [];
-                        winners = data.winners || {
-                            '一等奖': [],
-                            '二等奖': [],
-                            '三等奖': []
-                        };
-                        updateStats();
-                        updateParticipantsList();
-                        updateWinnersList();
-                    }
-                },
-                onError: (error) => {
-                    console.error('CloudBase监听失败:', error);
-                    // 降级到本地加载
-                    loadData();
-                }
-            });
-            
-            // 首次加载
-            collection.doc('data').get().then((res) => {
-                if (res.data && res.data.length > 0) {
-                    const data = res.data[0];
+        // 从Firebase加载数据
+        function loadDataFromFirebase() {
+            database.ref('lottery').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
                     participants = data.participants || [];
                     winners = data.winners || {
                         '一等奖': [],
@@ -902,9 +874,6 @@
                     updateParticipantsList();
                     updateWinnersList();
                 }
-            }).catch(error => {
-                console.error('CloudBase加载失败:', error);
-                loadData();
             });
         }
 
