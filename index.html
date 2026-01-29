@@ -531,11 +531,14 @@
 
         // 初始化
         window.onload = function() {
+            // 先从localStorage加载本地数据（即时显示）
+            loadData();
+            
+            // 如果使用Firebase，再同步Firebase数据
             if (useFirebase) {
                 loadDataFromFirebase();
-            } else {
-                loadData();
             }
+            
             updateStats();
             updateParticipantsList();
             updateWinnersList();
@@ -931,11 +934,13 @@
 
         // 保存数据
         function saveData() {
+            // 总是保存到localStorage作为备份
+            localStorage.setItem('participants', JSON.stringify(participants));
+            localStorage.setItem('winners', JSON.stringify(winners));
+            
+            // 如果Firebase可用，同时保存到Firebase
             if (useFirebase) {
                 saveDataToFirebase();
-            } else {
-                localStorage.setItem('participants', JSON.stringify(participants));
-                localStorage.setItem('winners', JSON.stringify(winners));
             }
         }
 
@@ -945,11 +950,10 @@
                 participants: participants,
                 winners: winners,
                 lastUpdate: new Date().toISOString()
+            }).then(() => {
+                console.log('数据已同步到Firebase');
             }).catch(error => {
-                console.error('Firebase保存失败:', error);
-                // 降级到本地存储
-                localStorage.setItem('participants', JSON.stringify(participants));
-                localStorage.setItem('winners', JSON.stringify(winners));
+                console.error('Firebase保存失败，但本地数据已保存:', error);
             });
         }
 
@@ -977,11 +981,27 @@
             const savedWinners = localStorage.getItem('winners');
             
             if (savedParticipants) {
-                participants = JSON.parse(savedParticipants);
+                try {
+                    participants = JSON.parse(savedParticipants);
+                    console.log('从localStorage加载了', participants.length, '个签到人员');
+                } catch (e) {
+                    console.error('localStorage数据解析失败:', e);
+                    participants = [];
+                }
             }
             
             if (savedWinners) {
-                winners = JSON.parse(savedWinners);
+                try {
+                    winners = JSON.parse(savedWinners);
+                    console.log('从localStorage加载了中奖数据');
+                } catch (e) {
+                    console.error('localStorage中奖数据解析失败:', e);
+                    winners = {
+                        '一等奖': [],
+                        '二等奖': [],
+                        '三等奖': []
+                    };
+                }
             }
         }
 
