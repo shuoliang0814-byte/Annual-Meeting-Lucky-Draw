@@ -612,7 +612,11 @@
                     showMessage(messageDiv, '签到成功！可以关闭此页面了 😊', 'success');
                 }, 1500);
             }
-        }if (isDrawing) return;
+        }
+
+        // 开始抽奖
+        function startDraw() {
+            if (isDrawing) return;
             
             const prizeType = document.getElementById('prizeType').value;
             const drawCount = parseInt(document.getElementById('drawCount').value);
@@ -695,11 +699,7 @@
                     window.currentDraw.availableParticipants
                 );
                 window.currentDraw = null;
-            }clearInterval(interval);
-                    // 真正抽奖
-                    drawWinners(prizeType, drawCount, availableParticipants);
-                }
-            }, 100);
+            }
         }
 
         // 执行抽奖
