@@ -403,6 +403,9 @@
                     <strong>签到链接：</strong><br>
                     <span id="signinUrlDisplay"></span>
                 </div>
+                <button class="btn btn-primary" onclick="testSigninMode()" style="margin-top: 15px; width: auto; padding: 10px 20px;">
+                    🔗 测试签到页面
+                </button>
             </div>
 
             <!-- 手机端签到表单 -->
@@ -559,8 +562,15 @@
             
             // 检查URL参数，如果是签到模式则直接显示签到表单
             const urlParams = new URLSearchParams(window.location.search);
+            console.log('当前URL参数:', window.location.search);
+            console.log('mode参数值:', urlParams.get('mode'));
+            
             if (urlParams.get('mode') === 'signin') {
-                console.log('进入手机签到模式');
+                console.log('✓ 进入手机签到模式');
+                
+                // 修改页面标题
+                document.title = '员工签到 - 年会抽奖';
+                
                 // 隐藏所有不必要的元素
                 const tabButtons = document.querySelector('.tab-buttons');
                 const desktopQR = document.getElementById('desktopQRSection');
@@ -568,15 +578,29 @@
                 const lotteryTab = document.getElementById('lottery');
                 const manageTab = document.getElementById('manage');
                 
-                if (tabButtons) tabButtons.style.display = 'none';
-                if (desktopQR) desktopQR.style.display = 'none';
-                if (mobileForm) mobileForm.style.display = 'block';
+                if (tabButtons) {
+                    tabButtons.style.display = 'none';
+                    console.log('✓ 隐藏标签按钮');
+                }
+                if (desktopQR) {
+                    desktopQR.style.display = 'none';
+                    console.log('✓ 隐藏二维码区域');
+                }
+                if (mobileForm) {
+                    mobileForm.style.display = 'block';
+                    console.log('✓ 显示签到表单');
+                }
                 if (lotteryTab) lotteryTab.style.display = 'none';
                 if (manageTab) manageTab.style.display = 'none';
                 
                 // 确保签到标签是激活的
                 const signinTab = document.getElementById('signin');
-                if (signinTab) signinTab.classList.add('active');
+                if (signinTab) {
+                    signinTab.classList.add('active');
+                    signinTab.style.display = 'block';
+                }
+            } else {
+                console.log('管理员模式（无mode参数）');
             }
             
             console.log('===== 页面初始化完成 =====');
@@ -1101,8 +1125,10 @@
             qrcodeDiv.innerHTML = '';
             
             // 生成签到URL
-            const baseUrl = window.location.href.split('?')[0];
+            const baseUrl = window.location.href.split('?')[0].split('#')[0];
             const signinUrl = baseUrl + '?mode=signin';
+            
+            console.log('生成管理页面二维码，URL:', signinUrl);
             
             // 显示URL
             urlSpan.textContent = signinUrl;
@@ -1136,8 +1162,10 @@
             qrcodeDiv.innerHTML = '';
             
             // 生成签到URL
-            const baseUrl = window.location.href.split('?')[0];
+            const baseUrl = window.location.href.split('?')[0].split('#')[0];
             const signinUrl = baseUrl + '?mode=signin';
+            
+            console.log('生成签到二维码，URL:', signinUrl);
             
             // 显示URL
             if (urlSpan) {
@@ -1153,6 +1181,13 @@
                 colorLight: '#ffffff',
                 correctLevel: QRCode.CorrectLevel.H
             });
+        }
+        
+        // 测试签到模式
+        function testSigninMode() {
+            const baseUrl = window.location.href.split('?')[0].split('#')[0];
+            const signinUrl = baseUrl + '?mode=signin';
+            window.open(signinUrl, '_blank');
         }
     </script>
 </body>
