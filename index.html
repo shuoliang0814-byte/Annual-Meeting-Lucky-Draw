@@ -560,11 +560,23 @@
             // 检查URL参数，如果是签到模式则直接显示签到表单
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('mode') === 'signin') {
-                // 隐藏标签按钮和二维码区域，只显示签到表单
-                document.querySelector('.tab-buttons').style.display = 'none';
-                document.getElementById('desktopQRSection').style.display = 'none';
-                document.getElementById('mobileSigninForm').style.display = 'block';
-                switchTab('signin');
+                console.log('进入手机签到模式');
+                // 隐藏所有不必要的元素
+                const tabButtons = document.querySelector('.tab-buttons');
+                const desktopQR = document.getElementById('desktopQRSection');
+                const mobileForm = document.getElementById('mobileSigninForm');
+                const lotteryTab = document.getElementById('lottery');
+                const manageTab = document.getElementById('manage');
+                
+                if (tabButtons) tabButtons.style.display = 'none';
+                if (desktopQR) desktopQR.style.display = 'none';
+                if (mobileForm) mobileForm.style.display = 'block';
+                if (lotteryTab) lotteryTab.style.display = 'none';
+                if (manageTab) manageTab.style.display = 'none';
+                
+                // 确保签到标签是激活的
+                const signinTab = document.getElementById('signin');
+                if (signinTab) signinTab.classList.add('active');
             }
             
             console.log('===== 页面初始化完成 =====');
