@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>年会抽奖系统</title>
+    <title>� 2026新春年会 · 马年大吉 🎊</title>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -36,6 +36,7 @@
             color: #667eea;
             margin-bottom: 30px;
             font-size: 2.5em;
+            white-space: nowrap;
         }
 
         .tab-buttons {
@@ -316,12 +317,13 @@
             font-size: 1.5em;
         }
 
-        #qrcode {
+        #qrcode, #qrcode-signin {
             background: white;
             padding: 20px;
             border-radius: 10px;
-            display: inline-block;
+            display: block;
             margin: 20px auto;
+            width: fit-content;
         }
 
         .qrcode-url {
@@ -430,12 +432,14 @@
                     <div class="number" id="totalParticipants">0</div>
                 </div>
                 <div class="stat-card">
-                    <h3>未中奖</h3>
+                    <h3>可抽奖</h3>
                     <div class="number" id="remainingParticipants">0</div>
+                    <p style="font-size: 0.9em; margin-top: 5px;">（未中奖人员）</p>
                 </div>
                 <div class="stat-card">
                     <h3>已中奖</h3>
                     <div class="number" id="totalWinners">0</div>
+                    <p style="font-size: 0.9em; margin-top: 5px;">（不可再抽）</p>
                 </div>
             </div>
 
@@ -446,7 +450,8 @@
                     <option value="三等奖">三等奖</option>
                 </select>
                 <input type="number" id="drawCount" placeholder="抽取人数" min="1" value="1">
-                <button class="draw-btn" onclick="startDraw()">开始抽奖</button>
+                <button class="draw-btn" id="startDrawBtn" onclick="startDraw()">开始抽奖</button>
+                <button class="draw-btn" id="stopDrawBtn" onclick="stopDraw()" style="display: none; background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);">停止</button>
             </div>
 
             <div class="winner-display" id="winnerDisplay">
@@ -517,6 +522,10 @@
             '二等奖': [],
             '三等奖': []
         };
+        
+        // 抽奖状态
+        let isDrawing = false;
+        let drawInterval = null;
 
         // 初始化
         window.onload = function() {
@@ -603,10 +612,8 @@
                     showMessage(messageDiv, '签到成功！可以关闭此页面了 😊', 'success');
                 }, 1500);
             }
-        }
-
-        // 开始抽奖
-        function startDraw() {
+        }if (isDrawing) return;
+            
             const prizeType = document.getElementById('prizeType').value;
             const drawCount = parseInt(document.getElementById('drawCount').value);
             
@@ -626,21 +633,69 @@
                 return;
             }
 
+            // 设置抽奖状态
+            isDrawing = true;
+            
+            // 切换按钮显示
+            document.getElementById('startDrawBtn').style.display = 'none';
+            document.getElementById('stopDrawBtn').style.display = 'inline-block';
+            
+            // 禁用选择框
+            document.getElementById('prizeType').disabled = true;
+            document.getElementById('drawCount').disabled = true;
+
             // 抽奖动画
             const winnerDisplay = document.getElementById('winnerDisplay');
-            winnerDisplay.innerHTML = `<h2>${prizeType}抽奖中...</h2>`;
+            winnerDisplay.innerHTML = `<h2>${prizeType}抽奖中...</h2><p style="color: white; font-size: 1.2em;">点击"停止"按钮确定获奖者</p>`;
             
-            let count = 0;
-            const interval = setInterval(() => {
+            // 保存当前抽奖参数，供停止时使用
+            window.currentDraw = {
+                prizeType: prizeType,
+                drawCount: drawCount,
+                availableParticipants: availableParticipants
+            };
+            
+            // 开始滚动动画
+            drawInterval = setInterval(() => {
                 const randomPerson = availableParticipants[Math.floor(Math.random() * availableParticipants.length)];
                 winnerDisplay.innerHTML = `
                     <h2>${prizeType}</h2>
                     <div class="winner-name">${randomPerson.name}</div>
+                    <p style="color: white; margin-top: 20px; font-size: 1.2em;">点击"停止"按钮确定获奖者</p>
                 `;
-                count++;
-                
-                if (count > 20) {
-                    clearInterval(interval);
+            }, 100);
+        }
+        
+        // 停止抽奖
+        function stopDraw() {
+            if (!isDrawing) return;
+            
+            // 清除动画
+            if (drawInterval) {
+                clearInterval(drawInterval);
+                drawInterval = null;
+            }
+            
+            // 恢复状态
+            isDrawing = false;
+            
+            // 切换按钮显示
+            document.getElementById('startDrawBtn').style.display = 'inline-block';
+            document.getElementById('stopDrawBtn').style.display = 'none';
+            
+            // 启用选择框
+            document.getElementById('prizeType').disabled = false;
+            document.getElementById('drawCount').disabled = false;
+            
+            // 执行真正的抽奖
+            if (window.currentDraw) {
+                drawWinners(
+                    window.currentDraw.prizeType,
+                    window.currentDraw.drawCount,
+                    window.currentDraw.availableParticipants
+                );
+                window.currentDraw = null;
+            }clearInterval(interval);
                     // 真正抽奖
                     drawWinners(prizeType, drawCount, availableParticipants);
                 }
@@ -649,8 +704,19 @@
 
         // 执行抽奖
         function drawWinners(prizeType, count, availableParticipants) {
+            // 再次确认可抽奖人员（防止重复中奖）
+            const allCurrentWinners = [...winners['一等奖'], ...winners['二等奖'], ...winners['三等奖']];
+            const validParticipants = availableParticipants.filter(p => 
+                !allCurrentWinners.some(w => w.phone === p.phone)
+            );
+            
+            if (validParticipants.length < count) {
+                alert(`可抽奖人数不足！当前可抽奖：${validParticipants.length}人`);
+                return;
+            }
+            
             const selected = [];
-            const pool = [...availableParticipants];
+            const pool = [...validParticipants];
             
             for (let i = 0; i < count; i++) {
                 const randomIndex = Math.floor(Math.random() * pool.length);
@@ -669,17 +735,20 @@
                     <h2>🎊 ${prizeType} 🎊</h2>
                     <div class="winner-name">${selected[0].name}</div>
                     <p style="color: white; margin-top: 20px; font-size: 1.2em;">${selected[0].phone}</p>
+                    <p style="color: #ffd700; margin-top: 10px; font-size: 1em;">此人员已中奖，不可再参与其他奖项</p>
                 `;
             } else {
                 const names = selected.map(w => `<div class="winner-name" style="font-size: 2em; margin: 10px;">${w.name}</div>`).join('');
                 winnerDisplay.innerHTML = `
                     <h2>🎊 ${prizeType} 🎊</h2>
                     ${names}
+                    <p style="color: #ffd700; margin-top: 20px; font-size: 1em;">以上人员已中奖，不可再参与其他奖项</p>
                 `;
             }
 
             updateStats();
             updateWinnersList();
+            updateParticipantsList();
         }
 
         // 更新统计信息
@@ -726,14 +795,24 @@
 
             let html = '';
             participants.forEach((participant, index) => {
-                const isWinner = [...winners['一等奖'], ...winners['二等奖'], ...winners['三等奖']]
-                    .some(w => w.phone === participant.phone);
-                const status = isWinner ? ' 🏆' : '';
+                const allWinners = [...winners['一等奖'], ...winners['二等奖'], ...winners['三等奖']];
+                const winnerInfo = allWinners.find(w => w.phone === participant.phone);
+                
+                let statusBadge = '';
+                if (winnerInfo) {
+                    // 找出中的是哪个奖
+                    let prizeName = '';
+                    if (winners['一等奖'].some(w => w.phone === participant.phone)) prizeName = '一等奖';
+                    else if (winners['二等奖'].some(w => w.phone === participant.phone)) prizeName = '二等奖';
+                    else if (winners['三等奖'].some(w => w.phone === participant.phone)) prizeName = '三等奖';
+                    
+                    statusBadge = ` <span style="background: #ffd700; color: #333; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; margin-left: 10px;">🏆 ${prizeName}</span>`;
+                }
                 
                 html += `
                     <div class="participant-item">
                         <div>
-                            <strong>${participant.name}${status}</strong>
+                            <strong>${participant.name}</strong>${statusBadge}
                             <span style="margin-left: 15px; color: #666;">${participant.phone}</span>
                             <span style="margin-left: 15px; color: #999; font-size: 0.9em;">${participant.signTime}</span>
                         </div>
