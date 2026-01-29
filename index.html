@@ -82,136 +82,157 @@
     </div>
 
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyBd-3QiN--xkg_R4gxtmkqANE4DrcDD2_Q",
-            authDomain: "annual-meeting-lucky-draw.firebaseapp.com",
-            databaseURL: "https://annual-meeting-lucky-draw-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "annual-meeting-lucky-draw",
-            storageBucket: "annual-meeting-lucky-draw.firebasestorage.app",
-            messagingSenderId: "849027018754",
-            appId: "1:849027018754:web:0773b03eab075f17edb71b"
-        };
+    // Firebase配置保持不变
+    const firebaseConfig = {
+        apiKey: "AIzaSyBd-3QiN--xkg_R4gxtmkqANE4DrcDD2_Q",
+        authDomain: "annual-meeting-lucky-draw.firebaseapp.com",
+        databaseURL: "https://annual-meeting-lucky-draw-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "annual-meeting-lucky-draw",
+        storageBucket: "annual-meeting-lucky-draw.firebasestorage.app",
+        messagingSenderId: "849027018754",
+        appId: "1:849027018754:web:0773b03eab075f17edb71b"
+    };
 
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-        let participants = [];
-        let winners = { '一等奖': [], '二等奖': [], '三等奖': [] };
-        let isDrawing = false;
-        let drawInterval = null;
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    
+    // 核心状态变量
+    let participants = []; 
+    let winners = { '一等奖': [], '二等奖': [], '三等奖': [] };
+    let isDrawing = false;
+    let drawInterval = null;
 
-        // 初始化判断：是否为手机签到模式
-        window.onload = function() {
-            const params = new URLSearchParams(window.location.search);
-            if (params.get('mode') === 'signin') {
-                document.getElementById('adminTabs').style.display = 'none';
-                document.getElementById('desktopQRSection').style.display = 'none';
-                document.getElementById('mobileSigninForm').style.display = 'block';
-            } else {
-                // 管理员模式：生成带参数的二维码
-                const signinUrl = window.location.origin + window.location.pathname + "?mode=signin";
-                new QRCode(document.getElementById("qrcode-signin"), { text: signinUrl, width: 200, height: 200 });
-                document.getElementById('signinUrlText').innerText = signinUrl;
+    // 初始化监听
+    window.onload = function() {
+        // 1. 处理页面模式判断
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('mode') === 'signin') {
+            document.getElementById('adminTabs')?.setAttribute('style', 'display:none');
+            document.getElementById('desktopQRSection').style.display = 'none';
+            document.getElementById('mobileSigninForm').style.display = 'block';
+        } else {
+            // 生成带参数的二维码
+            const signinUrl = window.location.origin + window.location.pathname + "?mode=signin";
+            new QRCode(document.getElementById("qrcode-signin"), { text: signinUrl, width: 200, height: 200 });
+            const urlDisplay = document.getElementById('signinUrlDisplay');
+            if(urlDisplay) urlDisplay.innerText = signinUrl;
+        }
+
+        // 2. 核心：监听数据库，只要数据变了，UI就自动重绘
+        db.ref('meeting_data').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                participants = data.participants || [];
+                winners = data.winners || { '一等奖': [], '二等奖': [], '三等奖': [] };
+                updateUI(); // 只要数据库一变，人数统计和中奖名单立即刷新
             }
+        });
+    };
+
+    // 抽奖逻辑：开始滚动
+    function startDraw() {
+        if (isDrawing) return;
+
+        const prize = document.getElementById('prizeType').value;
+        const count = parseInt(document.getElementById('drawCount').value);
+        
+        // 实时计算当前“干净”的奖池：排除掉所有已中奖的人
+        const allWinners = [...winners['一等奖'], ...winners['二等奖'], ...winners['三等奖']];
+        const pool = participants.filter(p => !allWinners.some(w => w.phone === p.phone));
+
+        if (pool.length < count) {
+            alert(`人不够了！当前待抽人数仅剩 ${pool.length} 人`);
+            return;
+        }
+
+        isDrawing = true;
+        document.getElementById('startDrawBtn').style.display = 'none';
+        document.getElementById('stopDrawBtn').style.display = 'inline-block';
+
+        // 滚动视觉效果
+        drawInterval = setInterval(() => {
+            const random = pool[Math.floor(Math.random() * pool.length)];
+            document.getElementById('winnerDisplay').innerHTML = `
+                <h2>正在抽取${prize}...</h2>
+                <div class="winner-name">${random.name}</div>
+            `;
+        }, 50);
+
+        // 临时存储当前过滤后的池子，供stopDraw使用
+        window.activePool = pool;
+    }
+
+    // 抽奖逻辑：停止并保存数据
+    function stopDraw() {
+        clearInterval(drawInterval);
+        isDrawing = false;
+        
+        const prize = document.getElementById('prizeType').value;
+        const count = parseInt(document.getElementById('drawCount').value);
+        const pool = window.activePool;
+
+        // 随机挑选获奖者
+        const result = [];
+        const tempPool = [...pool];
+        for (let i = 0; i < count; i++) {
+            const idx = Math.floor(Math.random() * tempPool.length);
+            result.push(tempPool.splice(idx, 1)[0]);
+        }
+
+        // 更新本地对象并同步到 Firebase
+        winners[prize] = [...(winners[prize] || []), ...result];
+        
+        db.ref('meeting_data').update({ winners }).then(() => {
+            // 按钮重置
+            document.getElementById('startDrawBtn').style.display = 'inline-block';
+            document.getElementById('stopDrawBtn').style.display = 'none';
             
-            // 实时监听 Firebase 数据更新
-            db.ref('meeting_data').on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    participants = data.participants || [];
-                    winners = data.winners || { '一等奖': [], '二等奖': [], '三等奖': [] };
-                    updateUI();
-                }
-            });
-        };
+            // 展示最终结果
+            const names = result.map(r => r.name).join(' & ');
+            document.getElementById('winnerDisplay').innerHTML = `
+                <h2>🎊 恭喜获得${prize} 🎊</h2>
+                <div class="winner-name">${names}</div>
+            `;
+        });
+    }
 
-        function switchTab(name) {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(name).classList.add('active');
-            event.currentTarget.classList.add('active');
-        }
+    // 更新界面统计（由 Firebase 监听器自动调用）
+    function updateUI() {
+        const allWinners = [...winners['一等奖'], ...winners['二等奖'], ...winners['三等奖']];
+        const total = participants.length;
+        const winCount = allWinners.length;
 
-        function signIn(e) {
-            e.preventDefault();
-            const name = document.getElementById('name').value;
-            const phone = document.getElementById('phone').value;
-            if (participants.some(p => p.phone === phone)) return alert('该手机已签到');
+        // 更新大屏上方的三个数字
+        document.getElementById('totalParticipants').innerText = total;
+        document.getElementById('totalWinners').innerText = winCount;
+        document.getElementById('remainingParticipants').innerText = total - winCount;
 
-            participants.push({ name, phone, time: new Date().toLocaleString() });
-            db.ref('meeting_data').update({ participants }).then(() => {
-                document.getElementById('signinMessage').innerHTML = "<p style='color:green;text-align:center;margin-top:10px;'>签到成功！请留意大屏幕抽奖</p>";
-                document.querySelector('form').style.display = 'none';
-            });
-        }
-
-        function startDraw() {
-            const prize = document.getElementById('prizeType').value;
-            const count = parseInt(document.getElementById('drawCount').value);
-            const allWinners = [...winners['一等奖'], ...winners['二等奖'], ...winners['三等奖']];
-            const pool = participants.filter(p => !allWinners.some(w => w.phone === p.phone));
-
-            if (pool.length < count) return alert('剩余人数不足');
-
-            isDrawing = true;
-            document.getElementById('btnStart').style.display = 'none';
-            document.getElementById('btnStop').style.display = 'inline-block';
-
-            drawInterval = setInterval(() => {
-                const random = pool[Math.floor(Math.random() * pool.length)];
-                document.getElementById('winnerDisplay').innerHTML = `<h3>正在抽取${prize}...</h3><div class="winner-name">${random.name}</div>`;
-            }, 50);
-
-            window.currentPool = pool;
-        }
-
-        function stopDraw() {
-            clearInterval(drawInterval);
-            isDrawing = false;
-            document.getElementById('btnStart').style.display = 'inline-block';
-            document.getElementById('btnStop').style.display = 'none';
-
-            const prize = document.getElementById('prizeType').value;
-            const count = parseInt(document.getElementById('drawCount').value);
-            const pool = window.currentPool;
-            
-            // 真正随机抽取
-            const currentWinners = [];
-            for(let i=0; i<count; i++) {
-                const idx = Math.floor(Math.random() * pool.length);
-                currentWinners.push(pool.splice(idx, 1)[0]);
+        // 更新下方的中奖列表
+        let html = '<h3>中奖名单</h3>';
+        for (let key in winners) {
+            if (winners[key].length > 0) {
+                html += `<div class="prize-section"><b>${key}:</b> ${winners[key].map(w => w.name).join(', ')}</div>`;
             }
-
-            winners[prize] = [...(winners[prize] || []), ...currentWinners];
-            db.ref('meeting_data').update({ winners }).then(() => {
-                const names = currentWinners.map(w => w.name).join('，');
-                document.getElementById('winnerDisplay').innerHTML = `<h2>🎊 恭喜获得${prize} 🎊</h2><div class="winner-name">${names}</div>`;
-            });
         }
+        document.getElementById('winnersList').innerHTML = html;
+    }
 
-        function updateUI() {
-            const allWinners = [...winners['一等奖'], ...winners['二等奖'], ...winners['三等奖']];
-            document.getElementById('count-total').innerText = participants.length;
-            document.getElementById('count-winner').innerText = allWinners.length;
-            document.getElementById('count-remain').innerText = participants.length - allWinners.length;
+    // 签到函数
+    function signIn(e) {
+        e.preventDefault();
+        const name = document.getElementById('name').value;
+        const phone = document.getElementById('phone').value;
+        
+        if (participants.some(p => p.phone === phone)) return alert('您已签到过了！');
 
-            let winnerHtml = '<h3>中奖名单</h3>';
-            for (let p in winners) {
-                if (winners[p].length > 0) {
-                    winnerHtml += `<div class="prize-section"><b>${p}:</b> ${winners[p].map(w => w.name).join(', ')}</div>`;
-                }
-            }
-            document.getElementById('winnersList').innerHTML = winnerHtml;
-
-            let listHtml = '<h3>签到详情</h3>';
-            participants.forEach(p => {
-                listHtml += `<div>${p.name} - ${p.phone}</div>`;
-            });
-            document.getElementById('participantsList').innerHTML = listHtml;
-        }
-
-        function clearAllData() {
-            if (confirm('确定清空？')) db.ref('meeting_data').remove();
-        }
+        const newParticipant = { name, phone, time: new Date().toLocaleString() };
+        participants.push(newParticipant);
+        
+        db.ref('meeting_data').update({ participants }).then(() => {
+            document.getElementById('signinMessage').innerHTML = "<p style='color:green; text-align:center;'>签到成功！</p>";
+            document.querySelector('form').style.display = 'none';
+        });
+    }
     </script>
 </body>
 </html>
