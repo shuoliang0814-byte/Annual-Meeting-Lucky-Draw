@@ -3,114 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎊2026新春年会 · 马跃金途 🎊</title>
+    <title>🎊 2026年会抽奖 🎊</title>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: "Microsoft YaHei", sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); min-height: 100vh; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; background: white; border-radius: 20px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #2d3436; margin-bottom: 30px; }
-        
-        /* 标签导航样式 */
-        .tab-buttons { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        .tab-btn { padding: 10px 20px; border: none; background: none; cursor: pointer; font-size: 16px; color: #636e72; transition: all 0.3s; }
-        .tab-btn.active { color: #6c5ce7; font-weight: bold; border-bottom: 3px solid #6c5ce7; }
-        
-        /* 内容区域控制 */
+        body { font-family: "Microsoft YaHei", sans-serif; background: #c0392b; color: #333; min-height: 100vh; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; background: #fff; border-radius: 15px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .tab-buttons { display: flex; gap: 5px; margin-bottom: 20px; background: #eee; padding: 5px; border-radius: 10px; }
+        .tab-btn { flex: 1; padding: 12px; border: none; cursor: pointer; border-radius: 8px; font-weight: bold; background: transparent; }
+        .tab-btn.active { background: #c0392b; color: white; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-
-        /* 统计卡片 */
-        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px; }
-        .stat-card { background: #f8f9fa; padding: 20px; border-radius: 12px; text-align: center; border: 1px solid #e1e4e8; }
-        .stat-card h3 { font-size: 14px; color: #636e72; margin-bottom: 5px; }
-        .stat-card div { font-size: 24px; font-weight: bold; color: #2d3436; }
-
-        /* 抽奖展示区 */
-        .draw-box { background: #2d3436; color: white; padding: 50px; border-radius: 15px; text-align: center; margin: 20px 0; min-height: 200px; display: flex; flex-direction: column; justify-content: center; }
-        .winner-name { font-size: 48px; color: #fdcb6e; margin-top: 15px; font-weight: bold; text-shadow: 0 0 10px rgba(253,203,110,0.5); }
-        
-        /* 表单与列表样式 */
-        input, select { padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin: 5px; }
-        .btn { padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        .btn-primary { background: #6c5ce7; color: white; }
-        .btn-stop { background: #d63031; color: white; }
-        .prize-item { background: #f1f2f6; padding: 10px; border-radius: 5px; margin-top: 5px; border-left: 4px solid #6c5ce7; }
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        .stat-card { background: #fdf2f2; padding: 15px; border-radius: 10px; text-align: center; border: 1px solid #f5c6cb; }
+        .stat-card h4 { font-size: 13px; color: #721c24; }
+        .stat-card div { font-size: 24px; font-weight: bold; color: #c0392b; }
+        .draw-zone { background: #2c3e50; color: #f1c40f; padding: 40px; border-radius: 15px; text-align: center; margin: 20px 0; min-height: 180px; }
+        .rolling-name { font-size: 50px; font-weight: bold; margin-top: 15px; min-height: 65px; }
+        .btn { padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.3s; }
+        .btn-start { background: #27ae60; color: white; }
+        .btn-stop { background: #e67e22; color: white; }
+        input, select { padding: 10px; border-radius: 5px; border: 1px solid #ddd; margin: 5px; }
+        .winners-list { margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 10px; }
+        .prize-tag { display: inline-block; background: #c0392b; color: white; padding: 2px 8px; border-radius: 4px; margin-right: 5px; font-size: 14px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1 id="mainTitle">🎊 2026年会抽奖大屏幕 🎊</h1>
+    <h1 style="text-align:center; margin-bottom:20px; color:#c0392b;">🧨 马跃金途·2026年会 🧨</h1>
 
-    <div class="tab-buttons" id="adminTabs">
-        <button class="tab-btn active" onclick="switchTab('signin')">1. 签到入口</button>
-        <button class="tab-btn" onclick="switchTab('lottery')">2. 开始抽奖</button>
-        <button class="tab-btn" onclick="switchTab('manage')">3. 数据管理</button>
+    <div class="tab-buttons" id="navBar">
+        <button class="tab-btn active" onclick="showTab('signin')">签到二维码</button>
+        <button class="tab-btn" onclick="showTab('lottery')">实时抽奖</button>
+        <button class="tab-btn" onclick="showTab('manage')">数据管理</button>
     </div>
 
     <div id="signin" class="tab-content active">
-        <div id="desktopView" style="text-align: center;">
-            <p style="margin-bottom: 15px; color: #666;">请员工扫描下方二维码进行签到</p>
-            <div id="qrcode-signin" style="display: inline-block; padding: 10px; background: white; border: 1px solid #eee;"></div>
-            <p id="urlLink" style="font-size: 12px; color: #aaa; margin-top: 10px;"></p>
+        <div id="qrContainer" style="text-align:center;">
+            <p>请员工扫描下方二维码进入签到</p>
+            <div id="qrcode" style="margin:20px auto; display:inline-block; border:10px solid white;"></div>
         </div>
-        
-        <div id="mobileView" style="display: none; max-width: 400px; margin: 0 auto;">
-            <div style="text-align: center; margin-bottom: 20px;">
-                <h2>员工快捷签到</h2>
-            </div>
-            <form onsubmit="handleSignIn(event)">
-                <input type="text" id="userName" placeholder="真实姓名" required style="width: 100%;">
-                <input type="tel" id="userPhone" placeholder="手机号码" required style="width: 100%; margin-top: 15px;">
-                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 20px;">确认签到</button>
-            </form>
-            <div id="msg" style="text-align: center; margin-top: 20px; color: #00b894;"></div>
+        <div id="mobileForm" style="display:none;">
+            <input type="text" id="mName" placeholder="请输入姓名" style="width:100%; margin-bottom:10px;">
+            <input type="tel" id="mPhone" placeholder="请输入手机号" style="width:100%; margin-bottom:15px;">
+            <button class="btn btn-start" style="width:100%" onclick="doSignIn()">提交签到</button>
+            <div id="signMsg" style="text-align:center; margin-top:15px; font-weight:bold;"></div>
         </div>
     </div>
 
     <div id="lottery" class="tab-content">
-        <div class="stats-grid">
-            <div class="stat-card"><h3>已签到</h3><div id="total-num">0</div></div>
-            <div class="stat-card"><h3>待抽奖</h3><div id="remain-num">0</div></div>
-            <div class="stat-card"><h3>已中奖</h3><div id="winner-num">0</div></div>
+        <div class="stats">
+            <div class="stat-card"><h4>已签到</h4><div id="s-total">0</div></div>
+            <div class="stat-card"><h4>待抽取</h4><div id="s-remain">0</div></div>
+            <div class="stat-card"><h4>已中奖</h4><div id="s-winner">0</div></div>
         </div>
 
-        <div style="text-align: center; margin-bottom: 20px;">
-            <select id="prizeType">
-                <option value="一等奖">一等奖</option>
-                <option value="二等奖" selected>二等奖</option>
-                <option value="三等奖">三等奖</option>
-            </select>
-            <input type="number" id="drawCount" value="1" min="1" style="width: 60px;">
-            <button id="startBtn" class="btn btn-primary" onclick="startDraw()">开始滚动</button>
-            <button id="stopBtn" class="btn btn-stop" onclick="stopDraw()" style="display:none;">停止</button>
+        <div style="text-align:center;">
+            <select id="pLevel"><option>一等奖</option><option selected>二等奖</option><option>三等奖</option></select>
+            <input type="number" id="pCount" value="1" min="1" style="width:60px;">
+            <button id="bStart" class="btn btn-start" onclick="beginRoll()">开始滚动</button>
+            <button id="bStop" class="btn btn-stop" style="display:none;" onclick="endRoll()">停止抽奖</button>
         </div>
 
-        <div class="draw-box" id="displayArea">
-            <div id="drawStatus">准备就绪</div>
-            <div class="winner-name" id="rollingName">-</div>
+        <div class="draw-zone">
+            <div id="pTitle">等待开奖</div>
+            <div id="pName" class="rolling-name">-</div>
         </div>
-
-        <div id="winnersHistory" style="margin-top: 30px;"></div>
+        <div class="winners-list" id="wHistory"></div>
     </div>
 
     <div id="manage" class="tab-content">
-        <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px; color: #856404;">
-            危险操作：清空后所有签到和中奖记录将消失
-        </div>
-        <button class="btn btn-stop" onclick="resetSystem()">清空数据库并重新开始</button>
-        
-        <h3 style="margin-top: 30px;">已签到名单</h3>
-        <div id="allMembers" style="font-size: 14px; color: #636e72; margin-top: 10px;"></div>
+        <button class="btn" style="background:#333; color:white;" onclick="resetAll()">重置系统（清空所有数据）</button>
+        <div id="allList" style="margin-top:20px; font-size:12px; color:#666;"></div>
     </div>
-
 </div>
 
 <script>
-    // 你的 Firebase 配置
     const firebaseConfig = {
         apiKey: "AIzaSyBd-3QiN--xkg_R4gxtmkqANE4DrcDD2_Q",
         authDomain: "annual-meeting-lucky-draw.firebaseapp.com",
@@ -124,138 +95,114 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     
-    let allParticipants = [];
-    let winnersData = { '一等奖': [], '二等奖': [], '三等奖': [] };
-    let timer = null;
+    let localParticipants = [];
+    let localWinners = { '一等奖':[], '二等奖':[], '三等奖':[] };
+    let rollTimer = null;
+    let currentPool = [];
 
     window.onload = function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        
-        // 模式切换：手机扫码模式
-        if (urlParams.get('mode') === 'signin') {
-            document.getElementById('adminTabs').style.display = 'none';
-            document.getElementById('desktopView').style.display = 'none';
-            document.getElementById('mobileView').style.display = 'block';
-            document.getElementById('mainTitle').innerText = "年会签到";
+        const sp = new URLSearchParams(window.location.search);
+        if(sp.get('mode') === 'signin') {
+            document.getElementById('navBar').style.display = 'none';
+            document.getElementById('qrContainer').style.display = 'none';
+            document.getElementById('mobileForm').style.display = 'block';
         } else {
-            // 电脑管理模式：生成签到二维码
-            const signUrl = window.location.origin + window.location.pathname + "?mode=signin";
-            new QRCode(document.getElementById("qrcode-signin"), { text: signUrl, width: 220, height: 220 });
-            document.getElementById('urlLink').innerText = signUrl;
+            const url = window.location.origin + window.location.pathname + "?mode=signin";
+            new QRCode(document.getElementById("qrcode"), { text: url, width: 200, height: 200 });
         }
 
-        // 核心：实时同步数据库
-        db.ref('meeting_v2').on('value', (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                allParticipants = data.participants || [];
-                winnersData = data.winners || { '一等奖': [], '二等奖': [], '三等奖': [] };
-                refreshUI();
-            }
+        // 核心实时监听
+        db.ref('lottery_v3').on('value', snap => {
+            const d = snap.val() || {};
+            localParticipants = d.participants || [];
+            localWinners = d.winners || { '一等奖':[], '二等奖':[], '三等奖':[] };
+            updateUI();
         });
     };
 
-    // 修复：导航点击无反应
-    function switchTab(tabId) {
+    function showTab(id) {
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        
-        document.getElementById(tabId).classList.add('active');
+        document.getElementById(id).classList.add('active');
         event.currentTarget.classList.add('active');
     }
 
-    // 签到逻辑
-    function handleSignIn(e) {
-        e.preventDefault();
-        const name = document.getElementById('userName').value.trim();
-        const phone = document.getElementById('userPhone').value.trim();
-        
-        if (allParticipants.some(p => p.phone === phone)) {
-            return alert('此手机号已签到过啦！');
-        }
+    function doSignIn() {
+        const name = document.getElementById('mName').value.trim();
+        const phone = document.getElementById('mPhone').value.trim();
+        if(!name || !phone) return alert('请填全信息');
+        if(localParticipants.some(p => p.phone === phone)) return alert('已签到');
 
-        allParticipants.push({ name, phone, time: new Date().toLocaleTimeString() });
-        db.ref('meeting_v2').update({ participants: allParticipants }).then(() => {
-            document.getElementById('msg').innerText = "✅ 签到成功，请在大屏幕关注抽奖！";
-            document.querySelector('form').style.display = 'none';
+        localParticipants.push({ name, phone });
+        db.ref('lottery_v3').update({ participants: localParticipants }).then(() => {
+            document.getElementById('signMsg').innerHTML = "签到成功！🧧";
+            document.getElementById('mobileForm').style.display = 'none';
         });
     }
 
-    // 抽奖逻辑：开始
-    function startDraw() {
-        const prize = document.getElementById('prizeType').value;
-        const count = parseInt(document.getElementById('drawCount').value);
+    function beginRoll() {
+        const level = document.getElementById('pLevel').value;
+        const count = parseInt(document.getElementById('pCount').value);
         
-        // 关键修复：每次抽奖都重新计算排除掉已中奖者的“纯净奖池”
-        const winnersList = [...winnersData['一等奖'], ...winnersData['二等奖'], ...winnersData['三等奖']];
-        const pool = allParticipants.filter(p => !winnersList.some(w => w.phone === p.phone));
+        // 关键：实时计算排除已中奖者后的奖池
+        const winPhones = [];
+        for(let key in localWinners) localWinners[key].forEach(w => winPhones.push(w.phone));
+        currentPool = localParticipants.filter(p => !winPhones.includes(p.phone));
 
-        if (pool.length < count) {
-            return alert(`奖池人数不足！剩余待抽人数：${pool.length}`);
-        }
+        if(currentPool.length < count) return alert('待抽人数不足');
 
-        document.getElementById('startBtn').style.display = 'none';
-        document.getElementById('stopBtn').style.display = 'inline-block';
-        document.getElementById('drawStatus').innerText = `正在抽取 ${prize}...`;
+        document.getElementById('bStart').style.display = 'none';
+        document.getElementById('bStop').style.display = 'inline-block';
+        document.getElementById('pTitle').innerText = "正在抽取 " + level;
 
-        timer = setInterval(() => {
-            const rd = pool[Math.floor(Math.random() * pool.length)];
-            document.getElementById('rollingName').innerText = rd.name;
+        rollTimer = setInterval(() => {
+            const r = currentPool[Math.floor(Math.random() * currentPool.length)];
+            document.getElementById('pName').innerText = r.name;
         }, 50);
-
-        window.currentPool = pool; // 存入全局变量供stop函数使用
     }
 
-    // 抽奖逻辑：停止
-    function stopDraw() {
-        clearInterval(timer);
-        const prize = document.getElementById('prizeType').value;
-        const count = parseInt(document.getElementById('drawCount').value);
-        const pool = window.currentPool;
-
-        // 随机挑选获奖者
-        const result = [];
-        for (let i = 0; i < count; i++) {
-            const index = Math.floor(Math.random() * pool.length);
-            result.push(pool.splice(index, 1)[0]);
+    function endRoll() {
+        clearInterval(rollTimer);
+        const level = document.getElementById('pLevel').value;
+        const count = parseInt(document.getElementById('pCount').value);
+        
+        // 真正抽取结果
+        const luckyOnes = [];
+        for(let i=0; i<count; i++) {
+            const idx = Math.floor(Math.random() * currentPool.length);
+            luckyOnes.push(currentPool.splice(idx, 1)[0]);
         }
 
-        // 更新数据库
-        winnersData[prize] = [...(winnersData[prize] || []), ...result];
-        db.ref('meeting_v2').update({ winners: winnersData }).then(() => {
-            document.getElementById('startBtn').style.display = 'inline-block';
-            document.getElementById('stopBtn').style.display = 'none';
-            document.getElementById('drawStatus').innerText = `🎊 恭喜${prize}中奖者 🎊`;
-            document.getElementById('rollingName').innerText = result.map(r => r.name).join(' & ');
+        localWinners[level] = (localWinners[level] || []).concat(luckyOnes);
+        
+        db.ref('lottery_v3').update({ winners: localWinners }).then(() => {
+            document.getElementById('bStart').style.display = 'inline-block';
+            document.getElementById('bStop').style.display = 'none';
+            document.getElementById('pTitle').innerText = "🎊 恭喜获得" + level + " 🎊";
+            document.getElementById('pName').innerText = luckyOnes.map(o => o.name).join(' & ');
         });
     }
 
-    // UI刷新
-    function refreshUI() {
-        const allWin = [...winnersData['一等奖'], ...winnersData['二等奖'], ...winnersData['三等奖']];
-        document.getElementById('total-num').innerText = allParticipants.length;
-        document.getElementById('winner-num').innerText = allWin.length;
-        document.getElementById('remain-num').innerText = allParticipants.length - allWin.length;
+    function updateUI() {
+        const wins = [];
+        for(let key in localWinners) localWinners[key].forEach(w => wins.push(w));
+        
+        document.getElementById('s-total').innerText = localParticipants.length;
+        document.getElementById('s-winner').innerText = wins.length;
+        document.getElementById('s-remain').innerText = localParticipants.length - wins.length;
 
-        // 中奖历史渲染
-        let h = '<h3>中奖记录</h3>';
-        for (let p in winnersData) {
-            if (winnersData[p].length > 0) {
-                h += `<div class="prize-item"><strong>${p}:</strong> ${winnersData[p].map(x => x.name).join(', ')}</div>`;
+        let html = '<strong>中奖记录：</strong><br>';
+        for(let key in localWinners) {
+            if(localWinners[key].length > 0) {
+                html += `<p><span class="prize-tag">${key}</span> ${localWinners[key].map(w => w.name).join(', ')}</p>`;
             }
         }
-        document.getElementById('winnersHistory').innerHTML = h;
-
-        // 管理列表渲染
-        document.getElementById('allMembers').innerText = allParticipants.map(p => p.name).join('、');
+        document.getElementById('wHistory').innerHTML = html;
+        document.getElementById('allMembers')?.innerText = "已签到名单：" + localParticipants.map(p => p.name).join(', ');
     }
 
-    function resetSystem() {
-        if (confirm('警告：这将删除所有签到和中奖数据！确定吗？')) {
-            db.ref('meeting_v2').remove().then(() => {
-                location.reload();
-            });
-        }
+    function resetAll() {
+        if(confirm('清空所有数据？')) db.ref('lottery_v3').remove().then(() => location.reload());
     }
 </script>
 </body>
