@@ -9,31 +9,69 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: "Microsoft YaHei", sans-serif; background: #f4f7f6; color: #333; min-height: 100vh; padding: 20px; }
-        .container { max-width: 900px; margin: 0 auto; background: #fff; border-radius: 15px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        h1 { text-align: center; margin-bottom: 25px; color: #4a90e2; font-size: 28px; }
-        .tab-buttons { display: flex; gap: 5px; margin-bottom: 20px; background: #eee; padding: 5px; border-radius: 10px; }
-        .tab-btn { flex: 1; padding: 12px; border: none; cursor: pointer; border-radius: 8px; font-weight: bold; background: transparent; transition: 0.3s; }
-        .tab-btn.active { background: #4a90e2; color: white; }
+        
+        body { 
+            font-family: "Microsoft YaHei", sans-serif; 
+            /* 使用您提供的带有 Logo 的背景图 */
+            background: url('https://r.jina.ai/i/0582d90f23f345638706346215707be9') no-repeat center center fixed; 
+            background-size: cover;
+            color: #333; 
+            min-height: 100vh; 
+            padding: 20px; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 磨砂玻璃效果容器 */
+        .container { 
+            width: 100%;
+            max-width: 900px; 
+            background: rgba(255, 255, 255, 0.9); /* 半透明白色背景 */
+            backdrop-filter: blur(10px); /* 背景模糊 */
+            border-radius: 20px; 
+            padding: 30px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2); 
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        h1 { text-align: center; margin-bottom: 25px; color: #d35400; font-size: 32px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
+        
+        .tab-buttons { display: flex; gap: 8px; margin-bottom: 25px; background: rgba(0,0,0,0.05); padding: 6px; border-radius: 12px; }
+        .tab-btn { flex: 1; padding: 14px; border: none; cursor: pointer; border-radius: 10px; font-weight: bold; background: transparent; transition: 0.3s; color: #555; }
+        .tab-btn.active { background: #e67e22; color: white; box-shadow: 0 4px 10px rgba(230,126,34,0.3); }
+        
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
-        .stat-card { background: #ebf3fb; padding: 15px; border-radius: 10px; text-align: center; border: 1px solid #d1e3f5; }
-        .stat-card h4 { font-size: 13px; color: #5c7c99; }
-        .stat-card div { font-size: 24px; font-weight: bold; color: #4a90e2; }
-        .draw-zone { background: #2c3e50; color: #f1c40f; padding: 40px; border-radius: 15px; text-align: center; margin: 20px 0; min-height: 180px; }
-        .rolling-name { font-size: 50px; font-weight: bold; margin-top: 15px; min-height: 65px; }
-        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.3s; }
+        
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; }
+        .stat-card { background: white; padding: 20px; border-radius: 12px; text-align: center; border: 1px solid #eee; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+        .stat-card h4 { font-size: 14px; color: #7f8c8d; margin-bottom: 5px; }
+        .stat-card div { font-size: 28px; font-weight: bold; color: #d35400; }
+
+        .draw-zone { 
+            background: linear-gradient(135deg, #2c3e50 0%, #000000 100%); 
+            color: #f1c40f; 
+            padding: 50px; 
+            border-radius: 18px; 
+            text-align: center; 
+            margin: 25px 0; 
+            min-height: 220px; 
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+        .rolling-name { font-size: 56px; font-weight: bold; margin-top: 20px; min-height: 75px; text-shadow: 0 0 15px rgba(241,196,15,0.5); }
+
+        .btn { padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: bold; transition: 0.3s; }
         .btn-start { background: #27ae60; color: white; }
-        .btn-stop { background: #e67e22; color: white; }
-        .btn-refresh { background: #95a5a6; color: white; margin-top: 10px; font-size: 12px; }
-        .btn-export { background: #673ab7; color: white; margin-right: 5px; }
-        input, select { padding: 12px; border-radius: 8px; border: 1px solid #ddd; margin: 5px 0; width: 100%; }
-        .winners-list { margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 10px; }
-        .winner-row { margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px dashed #ccc; line-height: 1.6; }
-        .prize-tag { display: inline-block; background: #4a90e2; color: white; padding: 2px 8px; border-radius: 4px; margin-right: 10px; font-size: 14px; }
-        #qrcode { margin: 20px auto; padding: 15px; background: white; border: 1px solid #eee; display: inline-block; }
-        .refresh-hint { font-size: 12px; color: #999; margin-top: 5px; }
+        .btn-stop { background: #e74c3c; color: white; }
+        .btn-refresh { background: #7f8c8d; color: white; margin-top: 15px; }
+        .btn-export { background: #8e44ad; color: white; }
+
+        input, select { padding: 12px; border-radius: 8px; border: 1px solid #ddd; margin: 5px 0; font-size: 15px; }
+        .winners-list { margin-top: 25px; padding: 20px; background: rgba(255,255,255,0.5); border-radius: 12px; border: 1px solid #eee; max-height: 200px; overflow-y: auto; }
+        .prize-tag { display: inline-block; background: #e67e22; color: white; padding: 3px 10px; border-radius: 5px; margin-right: 12px; font-size: 14px; }
+        
+        #qrcode { margin: 20px auto; padding: 15px; background: white; border-radius: 10px; display: inline-block; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
     </style>
 </head>
 <body>
@@ -42,64 +80,66 @@
     <h1>🎊 AUMOVIO UX R&D NKG 🎊</h1>
 
     <div class="tab-buttons" id="navBar">
-        <button class="tab-btn active" onclick="showTab('signin')">签到二维码</button>
+        <button class="tab-btn active" onclick="showTab('signin')">签到入场</button>
         <button class="tab-btn" onclick="showTab('lottery')">实时抽奖</button>
-        <button class="tab-btn" onclick="showTab('manage')">数据管理</button>
+        <button class="tab-btn" onclick="showTab('manage')">数据后台</button>
     </div>
 
-    <div id="signin" class="tab-content active">
-        <div id="qrContainer" style="text-align:center;">
-            <p>请扫码进行签到（不可重复签到）</p>
-            <div id="qrcode">二维码生成中...</div>
-            <p class="refresh-hint" id="timerHint">二维码将在 300 秒后自动刷新</p>
-            <button class="btn btn-refresh" onclick="resetQRTimer()">🔄 手动强制刷新二维码</button>
+    <div id="signin" class="tab-content active" style="text-align:center;">
+        <div id="qrContainer">
+            <p style="font-size: 18px; color: #666;">微信扫码签到，参与大屏抽奖</p>
+            <div id="qrcode"></div>
+            <p id="timerHint" style="font-size: 13px; color: #999; margin-top: 10px;">二维码自动刷新中...</p>
+            <button class="btn btn-refresh" onclick="resetQRTimer()">🔄 手动刷新</button>
         </div>
         
         <div id="mobileForm" style="display:none; max-width: 400px; margin: 0 auto;">
-            <div id="inputView">
-                <input type="text" id="mName" placeholder="请输入姓名">
-                <input type="tel" id="mPhone" placeholder="请输入手机号">
-                <button class="btn btn-start" style="width:100%; margin-top:15px;" onclick="doSignIn()">确认签到</button>
-            </div>
-            <div id="successView" style="display:none; text-align:center; padding:50px;">
-                <h2 style="color: #27ae60;">✅ 签到成功</h2>
-                <p style="margin-top:15px;">请留意大屏幕抽奖</p>
+            <input type="text" id="mName" placeholder="姓名">
+            <input type="tel" id="mPhone" placeholder="手机号">
+            <button class="btn btn-start" style="width:100%; margin-top:20px; height: 50px;" onclick="doSignIn()">确认签到</button>
+            <div id="successView" style="display:none; padding:40px;">
+                <h2 style="color: #27ae60;">🎉 签到成功！</h2>
+                <p>请看向大屏幕，好运即将到来</p>
             </div>
         </div>
     </div>
 
     <div id="lottery" class="tab-content">
         <div class="stats">
-            <div class="stat-card"><h4>已签到</h4><div id="s-total">0</div></div>
-            <div class="stat-card"><h4>待抽取</h4><div id="s-remain">0</div></div>
-            <div class="stat-card"><h4>已中奖</h4><div id="s-winner">0</div></div>
+            <div class="stat-card"><h4>已签到人数</h4><div id="s-total">0</div></div>
+            <div class="stat-card"><h4>待奖池人数</h4><div id="s-remain">0</div></div>
+            <div class="stat-card"><h4>幸运中奖者</h4><div id="s-winner">0</div></div>
         </div>
-        <div style="text-align:center; display: flex; gap: 10px; justify-content: center;">
-            <select id="pLevel" style="width: 140px;">
+        
+        <div style="text-align:center; display: flex; gap: 10px; justify-content: center; align-items: center;">
+            <select id="pLevel" style="width: 150px; height: 45px;">
                 <option value="特等奖">🏆 特等奖</option>
                 <option value="普通奖" selected>🎁 普通奖</option>
             </select>
-            <input type="number" id="pCount" value="5" min="1" style="width: 80px;">
-            <button id="bStart" class="btn btn-start" onclick="beginRoll()">开始滚动</button>
-            <button id="bStop" class="btn btn-stop" style="display:none;" onclick="endRoll()">停止抽奖</button>
+            <input type="number" id="pCount" value="1" min="1" style="width: 80px; height: 45px; text-align: center;">
+            <button id="bStart" class="btn btn-start" style="height: 45px;" onclick="beginRoll()">开始抽奖</button>
+            <button id="bStop" class="btn btn-stop" style="display:none; height: 45px;" onclick="endRoll()">停止</button>
         </div>
+
         <div class="draw-zone">
-            <div id="pTitle">准备抽奖</div>
-            <div id="pName" class="rolling-name">-</div>
+            <div id="pTitle" style="font-size: 20px; opacity: 0.8;">LUCKY DRAW</div>
+            <div id="pName" class="rolling-name">准备就绪</div>
         </div>
+        
         <div class="winners-list" id="wHistory"></div>
     </div>
 
     <div id="manage" class="tab-content">
-        <div style="margin-bottom: 20px;">
-            <button class="btn btn-export" onclick="exportData()">💾 导出所有数据备份</button>
-            <button class="btn" style="background:#f44336; color:white;" onclick="resetAll()">🗑️ 重置系统数据</button>
+        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <button class="btn btn-export" onclick="exportData()">💾 导出数据</button>
+            <button class="btn" style="background:#e74c3c; color:white;" onclick="resetAll()">🗑️ 清空数据</button>
         </div>
-        <div id="allList" style="margin-top:20px; font-size:14px; line-height: 2; background: #f9f9f9; padding: 15px; border-radius: 8px;"></div>
+        <div id="allList" style="background: white; padding: 20px; border-radius: 10px; line-height: 1.8;"></div>
     </div>
 </div>
 
 <script>
+    // Firebase 配置 (保持原有逻辑)
     const firebaseConfig = {
         apiKey: "AIzaSyBd-3QiN--xkg_R4gxtmkqANE4DrcDD2_Q",
         authDomain: "annual-meeting-lucky-draw.firebaseapp.com",
@@ -116,8 +156,7 @@
     let localParticipants = [];
     let localWinners = { '特等奖':[], '普通奖':[] };
     let rollTimer = null;
-    let qrAutoRefreshTimer = null;
-    let secondsToRefresh = 300; // 5分钟刷新一次
+    let secondsToRefresh = 300;
 
     window.onload = function() {
         const params = new URLSearchParams(window.location.search);
@@ -125,9 +164,14 @@
             document.getElementById('navBar').style.display = 'none';
             document.getElementById('qrContainer').style.display = 'none';
             document.getElementById('mobileForm').style.display = 'block';
+            document.querySelector('h1').innerText = "年会签到";
         } else {
             generateQRCode();
-            startQRCountdown(); // 启动自动刷新倒计时
+            setInterval(() => {
+                secondsToRefresh--;
+                document.getElementById('timerHint').innerText = `二维码将在 ${secondsToRefresh} 秒后刷新`;
+                if(secondsToRefresh <= 0) { generateQRCode(); secondsToRefresh = 300; }
+            }, 1000);
         }
 
         db.ref('lottery_v3').on('value', snap => {
@@ -138,39 +182,21 @@
         });
     };
 
-    // 二维码自动倒计时刷新
-    function startQRCountdown() {
-        if(qrAutoRefreshTimer) clearInterval(qrAutoRefreshTimer);
-        secondsToRefresh = 300;
-        qrAutoRefreshTimer = setInterval(() => {
-            secondsToRefresh--;
-            document.getElementById('timerHint').innerText = `二维码将在 ${secondsToRefresh} 秒后自动刷新`;
-            if(secondsToRefresh <= 0) {
-                generateQRCode();
-                secondsToRefresh = 300;
-            }
-        }, 1000);
-    }
-
-    function resetQRTimer() {
-        generateQRCode();
-        startQRCountdown();
-    }
-
     function generateQRCode() {
-        const url = window.location.origin + window.location.pathname + "?mode=signin&t=" + new Date().getTime();
+        const url = window.location.origin + window.location.pathname + "?mode=signin&t=" + Date.now();
         const qrDiv = document.getElementById("qrcode");
         qrDiv.innerHTML = "";
         new QRCode(qrDiv, { text: url, width: 220, height: 220 });
     }
 
-    // 签到校验（手机号唯一）
+    function resetQRTimer() { secondsToRefresh = 300; generateQRCode(); }
+
     function doSignIn() {
         const name = document.getElementById('mName').value.trim();
         const phone = document.getElementById('mPhone').value.trim();
-        if(!name || !phone) return alert('填写完整');
+        if(!name || !phone) return alert('请完整填写信息');
         if(localParticipants.some(p => p.phone === phone)) {
-            alert('已签到');
+            alert('您已签到过了');
             return showSuccess();
         }
         localParticipants.push({ name, phone, time: new Date().toLocaleString() });
@@ -178,22 +204,20 @@
     }
 
     function showSuccess() {
-        document.getElementById('inputView').style.display = 'none';
+        document.getElementById('mName').style.display = 'none';
+        document.getElementById('mPhone').style.display = 'none';
+        document.querySelector('#mobileForm .btn').style.display = 'none';
         document.getElementById('successView').style.display = 'block';
     }
 
-    // 抽奖逻辑
     function beginRoll() {
-        const level = document.getElementById('pLevel').value;
         const count = parseInt(document.getElementById('pCount').value);
         const winPhones = [];
         for(let key in localWinners) {
-            if(Array.isArray(localWinners[key])) {
-                localWinners[key].forEach(group => group.forEach(w => winPhones.push(w.phone)));
-            }
+            if(Array.isArray(localWinners[key])) localWinners[key].forEach(g => g.forEach(w => winPhones.push(w.phone)));
         }
         const currentPool = localParticipants.filter(p => !winPhones.includes(p.phone));
-        if(currentPool.length < count) return alert('人数不足');
+        if(currentPool.length < count) return alert('池内人数不足');
 
         document.getElementById('bStart').style.display = 'none';
         document.getElementById('bStop').style.display = 'inline-block';
@@ -202,8 +226,6 @@
             const r = currentPool[Math.floor(Math.random() * currentPool.length)];
             document.getElementById('pName').innerText = r.name;
         }, 50);
-        
-        // 绑定停止按钮所需的临时数据
         window.tempPool = currentPool;
     }
 
@@ -228,13 +250,13 @@
 
     function updateUI() {
         let winCount = 0;
-        let html = '<strong>中奖历史：</strong><br>';
+        let html = '<strong>🏆 中奖记录：</strong><br><br>';
         for(let key in localWinners) {
             const rounds = localWinners[key];
             if(Array.isArray(rounds)) {
                 rounds.forEach(group => {
                     winCount += group.length;
-                    html += `<div class="winner-row"><span class="prize-tag">${key}</span>${group.map(w=>w.name).join(', ')}</div>`;
+                    html += `<div style="margin-bottom:10px;"><span class="prize-tag">${key}</span>${group.map(w=>w.name).join(', ')}</div>`;
                 });
             }
         }
@@ -242,16 +264,7 @@
         document.getElementById('s-winner').innerText = winCount;
         document.getElementById('s-remain').innerText = localParticipants.length - winCount;
         document.getElementById('wHistory').innerHTML = html;
-        document.getElementById('allList').innerHTML = "总名单：" + localParticipants.map(p => p.name).join('、');
-    }
-
-    function exportData() {
-        const data = { participants: localParticipants, winners: localWinners };
-        const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `年会数据_${new Date().getTime()}.json`;
-        a.click();
+        document.getElementById('allList').innerHTML = "<strong>当前总签到名单：</strong><br>" + localParticipants.map(p => p.name).join('、');
     }
 
     function showTab(id) {
@@ -261,9 +274,17 @@
         event.currentTarget.classList.add('active');
     }
 
-    function resetAll() {
-        if(confirm('清空所有云端数据？')) db.ref('lottery_v3').remove().then(() => location.reload());
+    function exportData() {
+        const data = { participants: localParticipants, winners: localWinners };
+        const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `年会数据_${Date.now()}.json`;
+        a.click();
     }
+
+    function resetAll() { if(confirm('确定要清空所有签到和中奖数据吗？')) db.ref('lottery_v3').remove().then(() => location.reload()); }
 </script>
+
 </body>
 </html>
